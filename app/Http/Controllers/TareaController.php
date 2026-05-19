@@ -5,11 +5,31 @@ use Illuminate\Http\Request;
 class TareaController extends Controller
 {
 // READ — Lista todas las tareas
-public function index()
+public function index(Request $request)
 {
-$tareas = Tarea::orderBy('created_at', 'desc')->get();
-return view('tareas.index', compact('tareas'));
+ // Leer los parametros de busqueda del URL
+ // Si no existen, devuelven null por defecto
+ $busqueda = $request->input('busqueda');
+ $estado = $request->input('estado');
+ // Construir la consulta usando query builder
+ // Tarea::query() inicia la consulta sin ejecutarla todavia
+ $tareas = Tarea::query()
+ // when() aplica el bloque SOLO si $busqueda no es null ni vacio
+ ->when($busqueda, function ($query, $busqueda) {
+ $query->where('titulo', 'LIKE', '%' . $busqueda . '%')
+ ->orWhere('descripcion', 'LIKE', '%' . $busqueda . '%');
+ })
+ // when() para el filtro de estado
+ ->when($estado, function ($query, $estado) {
+ $query->where('estado', $estado);
+ })
+ ->orderBy('created_at', 'desc')
+ ->get();
+ // Pasamos tambien $busqueda y $estado a la vista
+ // para que el formulario mantenga los valores visibles
+ return view('tareas.index', compact('tareas', 'busqueda', 'estado'));
 }
+
 // CREATE — Formulario vacio
 public function create()
 {
